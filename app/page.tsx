@@ -1,11 +1,6 @@
-import React from 'react'
+import OpportunitiesBoard from "@/components/OpportunitiesBoard";
 
-const page = () => {
-  return (
-    <div>
-      <h1>ProClassic</h1>
-    </div>
-  )
+export default function HomePage() {
+  const currentUser = { id: "artist_1", name: "Giulia Rossi", role: "artist" };
+  return <OpportunitiesBoard currentUser={currentUser} />;
 }
-
-export default page

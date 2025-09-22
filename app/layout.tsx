@@ -1,14 +1,14 @@
-import React from 'react'
-import Page from './page'
+import "@/app/globals.css";
+import NavBar from "@/components/NavBar";
+import { ReactNode } from "react";
 
-const layout = () => {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <Page></Page>
+      <body className="bg-gray-50 min-h-screen">
+        <NavBar />
+        <main className="max-w-5xl mx-auto p-6">{children}</main>
       </body>
     </html>
-  )
+  );
 }
-
-export default layout
