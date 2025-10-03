@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { supabase } from "../lib/supabaseClient"
 
 type RepertoireItem = { id: number; title: string; composer: string };
@@ -27,26 +27,61 @@ type Profile = {
   career: CareerItem[];
 };
 
-type Props = { currentUser: { id: string; name: string; role: string }};
+type Props = { currentUser: { id: string; name?: string; role: string }};
 
 export default function ProfileEditor({ currentUser }: Props) {
   const [profile, setProfile] = useState<Profile>({
-    displayName: "Giulia Rossi",
-    bio: "Young lyric soprano, conservatory graduate.",
-    location: "Milan, Italy",
-    voiceType: "Soprano",
-    artistType: "Opera Singer",
+    displayName: currentUser.name || "",
+    bio: "",
+    location: "",
+    voiceType: "",
+    artistType: "",
     avatarUrl: "",
-    repertoire: [
-      { id: 1, title: "Cherubino - Non so piu'", composer: "Mozart"},
-      { id: 2, title: "Violetta - Sempre Libera", composer: "Verdi"},
-    ],
+    repertoire: [],
     media: [],
-    schools: ["Conservatorio di Milano"],
+    schools: [],
     career: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      setError(null);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("artist_profiles")
+        .select("display_name,bio,location,voice_type,artist_type,avatar_url,schools,repertoire,media,career")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      if (isMounted && data) {
+        setProfile({
+          displayName: data.display_name || "",
+          bio: data.bio || "",
+          location: data.location || "",
+          voiceType: data.voice_type || "",
+          artistType: data.artist_type || "",
+          avatarUrl: data.avatar_url || "",
+          schools: Array.isArray(data.schools) ? data.schools : [],
+          repertoire: Array.isArray((data as any).repertoire) ? (data as any).repertoire : [],
+          media: Array.isArray((data as any).media) ? (data as any).media : [],
+          career: Array.isArray((data as any).career) ? (data as any).career : [],
+        });
+      }
+      setLoading(false);
+    }
+    load();
+    return () => {
+      isMounted = false;
+    }
+  }, [currentUser.id]);
 
   async function uploadToBucket(bucket: string, file: File, pathPrefix: string): Promise<string> {
     const ext = file.name.split(".").pop() || "bin";
@@ -150,7 +185,7 @@ export default function ProfileEditor({ currentUser }: Props) {
         career: profile.career,
         updated_at: new Date().toISOString(),
       };
-      const { error: upsertError } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+      const { error: upsertError } = await supabase.from("artist_profiles").upsert(payload, { onConflict: "id" });
       if (upsertError) throw upsertError;
       alert("Profile saved");
     } catch (err: any) {
@@ -166,6 +201,7 @@ export default function ProfileEditor({ currentUser }: Props) {
         <h2 className="text-lg font-semibold mb-4">Artist Profile</h2>
 
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+        {loading && <div className="mb-3 text-sm text-gray-500">Loading…</div>}
 
         <div className="flex items-center gap-4 mb-4">
           <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden">
